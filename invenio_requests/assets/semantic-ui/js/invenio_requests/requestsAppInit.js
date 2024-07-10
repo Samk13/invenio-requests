@@ -1,6 +1,7 @@
 // This file is part of InvenioRequests
 // Copyright (C) 2022 CERN.
 // Copyright (C) 2024 Northwestern University.
+// Copyright (C) 2024 KTH Royal Institute of Technology.
 //
 // Invenio RDM Records is free software; you can redistribute it and/or modify it
 // under the terms of the MIT License; see LICENSE file for more details.
@@ -55,7 +56,10 @@ const request = JSON.parse(requestDetailsDiv.dataset.record);
 const defaultQueryParams = JSON.parse(requestDetailsDiv.dataset.defaultQueryConfig);
 const userAvatar = JSON.parse(requestDetailsDiv.dataset.userAvatar);
 const permissions = JSON.parse(requestDetailsDiv.dataset.permissions);
-
+const commentContentMaxLength = parseInt(
+  requestDetailsDiv.dataset.commentContentMaxLength,
+  10
+);
 const defaultComponents = {
   ...defaultContribComponents,
   "TimelineEvent.layout.unknown": TimelineUnknownEvent,
@@ -100,6 +104,7 @@ ReactDOM.render(
     overriddenCmps={{ ...defaultComponents, ...overriddenComponents }}
     userAvatar={userAvatar}
     permissions={permissions}
+    commentContentMaxLength={commentContentMaxLength}
   />,
   requestDetailsDiv
 );
