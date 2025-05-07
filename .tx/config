@@ -53,6 +53,7 @@ type = PO
 # 8) Pull translations for a single language from Transifex
 #    $ tx pull -l <lang>
 # 9) Pull translations for all languages from Transifex
+# Make sure to run this on root level of the project
 #    $ tx pull -a
 # 10) Compile .po files for all languages
 #    $ npm run compile_catalog
