@@ -41,17 +41,17 @@ type = PO
 #    npm run init_catalog lang <lang>
 # 4) Extract translation keys/values
 #    $ npm run extract_messages
-# 6) Install the transifex-client
+# 5) Install the transifex-client
 #    see: https://developers.transifex.com/docs/cli#transifex-client
-# 7) Push source (.pot) and translations (.po) to Transifex
+# 6) Push source (.pot) and translations (.po) to Transifex
 #    $ tx push -s -t
-# 8) Pull translations for a single language from Transifex
+# 7) Pull translations for a single language from Transifex
 #    $ tx pull -l <lang>
-# 9) Pull translations for all languages from Transifex
+# 8) Pull translations for all languages from Transifex
 #    $ tx pull -a
-# 10) Compile .po files for all languages
+# 9) Compile .po files for all languages
 #    $ npm run compile_catalog
-# 11) Convert .po file for a single language
+# 10) Convert .po file for a single language
 #    $ npm run compile_catalog lang <lang>
 
 [o:inveniosoftware:p:invenio:r:invenio-requests-messages-ui]

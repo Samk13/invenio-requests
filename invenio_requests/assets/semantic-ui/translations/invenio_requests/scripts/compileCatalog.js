@@ -1,78 +1,112 @@
 // This file is part of React-Invenio-Deposit
 // Copyright (C) 2021-2024 Graz University of Technology.
+// Copyright (C) 2025 KTH Royal Institute of Technology.
 //
 // Invenio-app-rdm is free software; you can redistribute it and/or modify it
 // under the terms of the MIT License; see LICENSE file for more details.
 
-const { appendFileSync, readdirSync, readFileSync, writeFileSync } = require("fs");
+const { readdirSync, readFileSync, writeFileSync, existsSync } = require("fs");
 const { gettextToI18next } = require("i18next-conv");
+const path = require("path");
 
 const PACKAGE_MESSAGES_PATH = "./messages";
+const PO_FILENAME = "messages.po";
+const JSON_FILENAME = "translations.json";
+const GENERATED_FILE = "_generatedTranslations.js";
 
 // it accepts the same options as the cli.
 // https://github.com/i18next/i18next-gettext-converter#options
 const options = {
-  /* you options here */
+  /* your options here */
 };
 
-function save(target) {
-  return (result) => {
-    writeFileSync(target, result);
-  };
-}
+async function compileAndCreateFileForLanguage(parentPath, lang) {
+  const poFilePath = path.join(parentPath, lang, PO_FILENAME);
+  const jsonFilePath = path.join(parentPath, lang, JSON_FILENAME);
 
-function compileAndCreateFileForLanguage(parentPath, lang) {
-  gettextToI18next(
-    lang,
-    readFileSync(`${parentPath}/${lang}/messages.po`),
-    options
-  ).then(save(`${parentPath}/${lang}/translations.json`));
+  if (!existsSync(poFilePath)) {
+    console.warn(`❌ Skipping ${lang}: ${PO_FILENAME} not found.`);
+    return false;
+  }
+
+  try {
+    const poContent = readFileSync(poFilePath);
+    const result = await gettextToI18next(lang, poContent, options);
+    writeFileSync(jsonFilePath, result);
+    console.log(`✅ Successfully converted ${lang}/${PO_FILENAME} to ${JSON_FILENAME}`);
+    return true;
+  } catch (error) {
+    console.error(`❌ Error processing ${lang}:`, error.message);
+    return false;
+  }
 }
 
 function writeGeneratedTranslationsFile(languages) {
-  const generatedTranslationsFilePath = `${PACKAGE_MESSAGES_PATH}/_generatedTranslations.js`;
-  writeFileSync(
-    generatedTranslationsFilePath,
-    "// This is an auto generated file to import and export all available translations.\n" +
-      "// Changes should not be checked into version control.\n"
+  const generatedPath = path.join(PACKAGE_MESSAGES_PATH, GENERATED_FILE);
+  let content = "// AUTO-GENERATED FILE - DO NOT EDIT MANUALLY\n";
+  content += "// This file exports all available translations for i18next\n\n";
+
+  // Generate imports
+  languages.forEach((lang) => {
+    const varName = lang.toUpperCase().replace(/-/g, "_");
+    content += `import TRANSLATE_${varName} from "./${lang}/${JSON_FILENAME}";\n`;
+  });
+
+  // Generate exports
+  content += "\nexport const translations = {\n";
+  languages.forEach((lang) => {
+    const varName = lang.toUpperCase().replace(/-/g, "_");
+    content += `  ${lang}: { translation: TRANSLATE_${varName} },\n`;
+  });
+  content += "};\n";
+
+  writeFileSync(generatedPath, content);
+  console.log(`📁 Generated translation index at ${GENERATED_FILE}`);
+}
+
+async function processAllLanguages() {
+  const directories = readdirSync(PACKAGE_MESSAGES_PATH, { withFileTypes: true })
+    .filter((dir) => dir.isDirectory())
+    .map((dir) => dir.name);
+
+  const processedLangs = [];
+  for (const lang of directories) {
+    const success = await compileAndCreateFileForLanguage(PACKAGE_MESSAGES_PATH, lang);
+    if (success) processedLangs.push(lang);
+  }
+  return processedLangs;
+}
+
+async function handleLanguageCommand(lang) {
+  const success = await compileAndCreateFileForLanguage(PACKAGE_MESSAGES_PATH, lang);
+  if (!success) process.exit(1);
+
+  const directories = readdirSync(PACKAGE_MESSAGES_PATH, { withFileTypes: true })
+    .filter((dir) => dir.isDirectory())
+    .map((dir) => dir.name);
+
+  const validLangs = directories.filter((l) =>
+    existsSync(path.join(PACKAGE_MESSAGES_PATH, l, JSON_FILENAME))
   );
-
-  for (const lang of languages) {
-    appendFileSync(
-      generatedTranslationsFilePath,
-      `import TRANSLATE_${lang.toUpperCase()} from "./${lang}/translations.json";\n`
-    );
-  }
-
-  appendFileSync(generatedTranslationsFilePath, `\nexport const translations = {\n`);
-  for (const lang of languages) {
-    appendFileSync(
-      generatedTranslationsFilePath,
-      `  ${lang}: { translation: TRANSLATE_${lang.toUpperCase()} },\n`
-    );
-  }
-  appendFileSync(generatedTranslationsFilePath, `};\n`);
+  writeGeneratedTranslationsFile(validLangs);
 }
 
-if ("lang" === process.argv[2]) {
-  const lang = process.argv[3];
-  compileAndCreateFileForLanguage(`${PACKAGE_MESSAGES_PATH}`, lang);
-} else {
-  // Since we use Transifex for managing translations, the pulled .po files have to
-  // be converted to .json files in order to be used by the application.
-  const directories = readdirSync(`${PACKAGE_MESSAGES_PATH}`, {
-    withFileTypes: true,
-  }).filter((dir) => dir.isDirectory());
-
-  // We now assume we are dealing with directories containing a messages.po file
-  // - read input file containing translations (e.g. de.po)
-  // - write compiled output file containing translations to be used by the application (e.g. de.json)
-  let languages = [];
-  for (const directory of directories) {
-    compileAndCreateFileForLanguage(directory.parentPath, directory.name);
-    languages.push(directory.name);
+// Main execution flow
+// self-executing function for coordinating async on the top level
+// and to avoid using .then() and .catch().
+// operations with centralized error handling.
+(async () => {
+  try {
+    if (process.argv[2] === "lang") {
+      const lang = process.argv[3];
+      if (!lang) throw new Error("Missing language code e.g. 'sv', 'ar', etc.");
+      await handleLanguageCommand(lang);
+    } else {
+      const processedLangs = await processAllLanguages();
+      writeGeneratedTranslationsFile(processedLangs);
+    }
+  } catch (error) {
+    console.error("❌ Script failed:", error.message);
+    process.exit(1);
   }
-
-  // - write file containing translations for static import in i18next.js
-  writeGeneratedTranslationsFile(languages);
-}
+})();
