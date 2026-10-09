@@ -22,8 +22,8 @@ export class RequestAction extends Component {
 
   static contextType = RequestActionContext;
 
-  onCommentChange = (event, editor) => {
-    this.setState({ actionComment: editor.getContent() });
+  onCommentChange = (content) => {
+    this.setState({ actionComment: content });
   };
 
   handleActionClick = () => {
@@ -72,8 +72,8 @@ export class RequestAction extends Component {
                 {i18next.t("Add comment (optional)")}
                 <Divider hidden />
                 <RichEditor
-                  inputValue={() => actionComment}
-                  onChange={this.onCommentChange}
+                  inputValue={actionComment}
+                  onEditorChange={this.onCommentChange}
                 />
               </Modal.Description>
             </Modal.Content>

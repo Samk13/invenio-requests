@@ -26,8 +26,8 @@ requests = WebpackThemeBundle(
             dependencies={
                 "semantic-ui-css": "^2.4.1",
                 "semantic-ui-react": "^2.1.1",
-                "@tinymce/tinymce-react": "^4.3.0",
-                "tinymce": "^6.7.2",
+                "@hugerte/hugerte-react": "^2.0.2",
+                "hugerte": "^1.0.14",
                 "axios": "^1.7.7",
                 "lodash": "^4.17.15",
                 "luxon": "^1.21.1",
